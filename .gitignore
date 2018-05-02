@@ -2,10 +2,12 @@ PitchDetector/bin
 *.aux
 *.log
 *.fls
-*.pdf
 *.blg
 *.dvi
 *.tex~
 *.bbl
 *.eps
 *.fdb_latexmk
+*.gz
+*.toc
+

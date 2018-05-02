@@ -1,0 +1,51 @@
+\documentclass[12pt, oneside]{report}
+\usepackage{amsfonts}
+\usepackage[a4paper, left=3.5cm, right=2cm, bottom=2.5cm, top=3cm]{geometry}
+
+% polskie znaki
+\usepackage[T1]{fontenc} 
+\usepackage[english,polish]{babel}
+\usepackage{polski}
+\usepackage[OT4,plmath]{}
+\usepackage[utf8]{inputenc}
+
+\usepackage{graphicx}
+\usepackage{epsfig}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{url}
+\graphicspath{{rys/}}
+
+\usepackage{indentfirst} 
+
+
+
+\fontsize{10}{12pt}
+\begin{document}
+
+%%%%%%%%% FIRST PAGE
+
+\include{strona_tytulowa}
+
+\tableofcontents
+\thispagestyle {empty}
+\include{__wstep}
+\include{Cele}
+\include{1_przeglad}
+\include{3_implementacja}
+\include{4_rezultaty}
+\include{_podsumowanie}
+\include{spisy}
+
+%%%%%%%%%%%%
+\nocite{*}% wszystkie pozycje zostaną wyświetlne.
+\bibliographystyle{plain}
+\bibliography{pd}{}{}
+
+\begin{appendix}
+\appendix
+\include{dodatek_A}
+\include{dodatek_B}
+\end{appendix}
+
+\end{document}
+ 
