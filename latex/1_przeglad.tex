@@ -1,52 +1,61 @@
 \chapter{{Wprowadzenie do technik ekstracji częstotliwości podstawowej}}
 \label{chapter:przeglad}
-\thispagestyle{empty}
 
 W tym rozdziale zostaną przedstawione istniejące rozwiązania służące do wykrywania wysokości dźwięku oraz aplikacje dające możliwość sterowania kontrolerami MIDI za pomocą wysokości dźwięku. W zestawieniu znajdą się wybrane aplikacje komercyjne, które cieszą się największą popularnością. Przeanalizowane zostaną również istniejące środowiska programistyczne.
 
+
+Cel pracy można podzielić na dwie części. Pierwszą z nich jest zrealizowanie aplikacji, która implementuje mechanizmy ekstrakcji tonów z sygnału akustycznego. Drugą częścią jest implementacja mechanizmu obsługi kontrolera MIDI. Na potrzeby tej pracy będzie wykorzystywany system operacyjny Linux i jego interfejsy programistyczne. Jednymi z podstawowych funkcji części pierwszej programu będzie wnikliwa analiza oraz przygotowanie informacji na temat pozyskanego dźwięku. Druga część aplikacji będzie rozbudowywać funkcjonalność aplikacji poprzez interpretacje danych z części pierwszej i wykorzystanie interfejsu MIDI, aby w łatwy sposób można było sterować np.: kontrolerem MIDI, syntezatorem czy innymi urządzeniami bazującymi na protokole MIDI. 
+
+
+	
+Wykorzystane do tego zostaną algorytmy analizy dźwięku, które sprawdzają się przy analizie w czasie rzeczywistym. Do algorytmów tych możemy zaliczyć algorytm YIN, MPM oraz inne algorytmy korzystające z metody autokorelacji. Użyte będą również dedykowane biblioteki, które posiadają gotowe implementacje algorytmów do wykrywania tonów muzycznych.
+
+Głównym powodem wyboru  tematu była próba połączenia zainteresowań oraz pasji z kierunkiem rozwoju zawodowego.
+	
+	
+Kolejnym argumentem jest wytworzenie wolnego oprogramowania wychodzącego naprzeciw oczekiwaniom potencjalnych użytkowników, którzy potrzebują aplikacji cechującej się prostotą obsługi oraz niezawodnością. Aplikacja będzie dedykowana profesjonalnym muzykom, jak i amatorom, którzy potrzebują pomocy w nauce gry na instrumentach. Głównym problemem, którego rozwiązanie jest jednym z najważniejszych czynników motywacyjnych, jest udostępnienie niezawodnej aplikacji nadającej się do zastosowań przez profesjonalnych muzyków.
+
 \section{{Mechanizmy identyfikacji wysokości dźwięku}}
- W pierwszej części aplikacji podany na wejściu dźwięk zostanie poddanie analizie za pomocą wybranego algorytmu do estymacji tonu prostego. Następnie uzyskany rezultat zostanie użyty do wygenerowania dźwięku w formacie MIDI. Poniżej został przedstawiony prosty schemat obrazujący przebieg działania aplikacji.
+ W pierwszej części aplikacji podany na wejściu dźwięk zostanie poddany analizie za pomocą wybranego algorytmu do estymacji tonu prostego. Następnie uzyskany rezultat zostanie użyty do wygenerowania dźwięku w formacie MIDI. Na rysunku \ref{schemat} został przedstawiony prosty schemat obrazujący przebieg działania aplikacji.
  
  
  \begin{figure}[h!]
   \centering
   \includegraphics[width=0.5\linewidth]{rys/schematAplikacji}
   \caption{Schemat działania aplikacji.}
-  \label{fig:schemat}
+  \label{schemat}
 \end{figure}
 
 
-W jednym z pierwszych etapów przedstawionym na schemacie jest wybór odpowiedniego algorytmu. Algorytmy do wykrywania tonu prostego już istnieją i do realizacji tej pracy inżynierskiej nie ma potrzeby tworzenia nowych. Z istniejących rozwiązań do realizacji zadania zostały wykorzystane algorytmy:
+W jednym z pierwszych etapów przedstawionym na schemacie jest wybór odpowiedniego algorytmu. Algorytmy do wykrywania tonu prostego już istnieją i do realizacji tej pracy inżynierskiej nie ma potrzeby tworzenia nowych. Z istniejących rozwiązań, do realizacji zadania zostały wykorzystane algorytmy:
 
 \begin{itemize}
-\item[•]{\cite{YIN}YIN jest algorytmem zawierającym kilka pożądanych cech, które zdecydowały o jego użyciu w aplikacji. W głównej mierze bazuje na metodzie autokorelacji z niewielkimi modyfikacjami pozwalającymi uniknąć błędów. Nie ma górnego ograniczenia częstotliwośći, przez co jest odpowiedni dla wysokich dźwięków oraz muzyki. Jego realizacja jest stosunkowo prosta i wystarczająco wydajna przy niewielkim opóźnieniu}
-
-\item[•]{\cite{harvey}MPM (ang. McLeod Pitch Method) jest algorytmem również bazujący na metodzie autokorelacji. Może działać w czasie rzeczywistym ze standardowym próbkowaniem 44.1 kHz. Działa bez zastosowania filtra dolnoprzepustowego i może pracować z dźwiękiem o wysokiej harmonicznej jak np. dźwięk generowany przez skrzypce. Rejestrowane zmiany przez ten algorytm mają niezawodną dokładność 1 centa. MPM działa również dobrze bez przetwarzania końcowego poprawy wysokości dźwięku, co jest powszechnie stosowane w przypadku innych algorytmów.}
-
-\item[•]{\cite{harvey}Dynamic Wavelat jest to algorytm, który do wyznaczania wysokości tonu używa tz. falki. Wykorzystuje on STFT (ang. Short-time Fourier transform) oraz okna o stałeś liczbie oscylacji. Długość okna określa się jako stałą liczbę okresów w tej częstotliwości.}
-
-\item[•]{\cite{AMDF} AMDF (ang. Average  Magnitude Difference Function) używa metody, która jest odmianą autokorelacji. Algorytm, zamiast korelować dane wejściowe przy różnych opóźnieniach (gdzie multiplikacje i podsumowania są tworzone dla każdej wartości) tworzy sygnał różnicowy pomiędzy dźwiękiem opóźnionym a oryginalnym i dla każdej wartości opóźnienia przyjmowana jest wartość bezwzględna.}
-
+\item[•]{YIN,}
+\item[•]{MPM,}
+\item[•]{Dynamic Wavelet,}
+\item[•]{AMDF.}
 \end{itemize}
+ \section{{YIN}}
+ YIN \cite{YIN} jest algorytmem do estymacji częstotliwości podstawowej mowy oraz dźwięków muzycznych, zawierającym kilka pożądanych cech, które zdecydowały o jego użyciu w aplikacji. W głównej mierze bazuje na metodzie autokorelacji z niewielkimi modyfikacjami pozwalającymi uniknąć błędów. YIN ma kilka parametrów, które nie wymagają precyzyjnego ustawienia. W przeciwieństwie do większości innych metod górny limit nie musi znajdować się w zakresie wyszukiwania $F_0$. Jego realizacja jest stosunkowo prosta i wystarczająco wydajna przy niewielkim opóźnieniu. Jedną z modyfikacji pozwalających uniknąć błędów jest wykonanie funkcji różnicowej. Na rysunku \ref{yin_mowa} został przedstawiony przykład sygnału uzyskanego z rejestracji mowy. Na rysunku \ref{yin_róznicowa} przedstawiony jest wynik użycia funkcji różnicowej.
  
+  \begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.7\linewidth]{rys/yin2}
+  \caption{Przykładowy sygnał zarejestrowanej mowy \cite{YIN}.}
+  \label{yin_mowa}
+\end{figure}
 
+  \begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.7\linewidth]{rys/yin21}
+  \caption{Sygnał mowy po użyciu funkcji różnicowej \cite{YIN}.}
+  \label{yin_róznicowa}
+\end{figure}
 
-Metoda autokorelacji wykorzystana w algorytmach YIN oraz MPM można obliczyć ze wzoru:
-\begin{equation}
-\label{equation:2}
-   Rxx(n) = \sum_{m=0}^{M-1}{x(m)x(m+n)}
-\end{equation}
-Gdzie $Rxx$ jest dyskretną autokorelacją o opóźnieniu $l$, a $x(m)$ jest sygnałem dyskretnym.
-
-Do wyznaczenia częstotliwości możemy również wykorzystać DFT(ang. Discrete Fourier Transform), która możena obliczyć ze wzoru:
-\begin{equation}
-\label{equation:3}
-   Rxx(n) = \sum_{n=0}^{N-1}*{x(n)}*e^{-{j2 \pi nk}/{N }},  n \in{\mathbb{Z}}
-\end{equation}
-Gdzie $j$ to jednostka urojona,$k$ to numer harmonicznej, $n$ to numer próbki sygnału,$N$ to liczba próbek.
-
-
-
+ \section{{MPM}}
+ MPM \cite{harvey} (ang. McLeod Pitch Method) jest algorytmem również bazującym na metodzie autokorelacji. Może działać w czasie rzeczywistym ze standardowym próbkowaniem 44.1 kHz. Działa bez zastosowania filtra dolnoprzepustowego i może pracować z dźwiękiem o wysokiej harmonicznej jak np. dźwięk generowany przez skrzypce. Rejestrowane zmiany przez ten algorytm mają niezawodną dokładność 1 centa. MPM działa również dobrze bez przetwarzania końcowego poprawy wysokości dźwięku, co jest powszechnie stosowane w przypadku innych algorytmów.
+ \section{{Dynamic Wavelet}}
+ Dynamic Wavelet \cite{harvey} jest to algorytm, który do wyznaczania wysokości tonu używa tzw. falki. Wykorzystuje on STFT (ang. Short-time Fourier transform) oraz okna o stałej liczbie oscylacji. Długość okna określa się jako stałą liczbę okresów w tej częstotliwości.
  Dla algorytmu Dynamic Wavelat należy użyć metody CWT(ang. Continuous Wavelet Transform) danej wzorem:
 \begin{equation}
 \label{equation:1}
@@ -54,47 +63,83 @@ Gdzie $j$ to jednostka urojona,$k$ to numer harmonicznej, $n$ to numer próbki s
 \end{equation}
 Gdzie wartość  $c(a, b)$ jest współczynnikiem CWT  obliczonym poprzez splatanie sygnału $f(t)$ z falką, $\Psi$, skala $a$ o przesunięciu $b$ w czasie.
 CWT często odnosi się do wektora wszystkich współczynników dla danej skali.
-Podczas przetwarzania dużych sygnałów lub wielowymiarowych sygnałów, nadmiarowe dane sprawiają, że proces nie będzie możliwy do obliczenia. Wprowadzona została również Szybka transformacja falkowa (FWT)(ang. Fast Wavelet Transformation). FWT eliminuje problem nadmiarowości dięki wykorzystaniu ortogonalności. Para funkcji jest ortogonalna, jeżeli ich wewnętrzny produkt wynosi zero. Oznacza to, że każda informacja zakodowana przez pierwszą falkę nie jest zakodowana przez drugą i odwrotnie. Zatem nie traci  się czasu na obliczanie nadmiarowych danych.
+Podczas przetwarzania dużych sygnałów lub wielowymiarowych sygnałów, nadmiarowe dane sprawiają, że proces nie będzie możliwy do obliczenia. Wprowadzona została również Szybka transformacja falkowa (FWT)(ang. Fast Wavelet Transformation). FWT eliminuje problem nadmiarowości dzięki wykorzystaniu ortogonalności. Para funkcji jest ortogonalna, jeżeli ich iloczyn skalarny wynosi zero. Oznacza to, że każda informacja zakodowana przez pierwszą falkę, nie jest zakodowana przez drugą i odwrotnie. Zatem nie traci  się czasu na obliczanie nadmiarowych danych.
+ \section{{AMDF}}
+ AMDF \cite{AMDF} (ang. Average  Magnitude Difference Function) używa metody, która jest odmianą autokorelacji. Algorytm, zamiast korelować dane wejściowe przy różnych opóźnieniach (gdzie mnożenia i dodawania są tworzone dla każdej wartości) tworzy sygnał różnicowy pomiędzy dźwiękiem opóźnionym a oryginalnym i dla każdej wartości opóźnienia przyjmowana jest wartość bezwzględna. W przeciwieństwie do autokorelacji algorytm AMDF nie wymaga żadnych mnożeń, co jest pożądane we właściwościach dla aplikacji czasu rzeczywistego. Dla każdej wartości opóźnienia dokonuje się na oknie integrującym z $N$ próbek. Aby wygenerować cały zakres opóźnień, okno jest różnicowane krzyżowo z pełnym przedziałem analizy. Zaletą takiego rozwiązania są stałe opóźnienia. Wynika to z tego, że zawsze występuje pełne pokrywanie się danych pomiędzy dwoma segmentami różnicowania krzyżowego. AMDF może zostać użyty do rozpoznania wysokości tonu mowy. Jednak mowa zawiera bardzo bogate składowe harmoniczne. Minimalna $F_0$ wynosi około 80 Hz, a maksymalna 500 Hz. Większość jest w zakresie od 100 do 200 Hz. Więc sygnał może zawierać 30 do 40 składowych harmonicznych. Przy czym $F_0$ nie jest dominująca. Bogate składowe harmoniczne umożliwiają bardzo skomplikowane śledzenie dźwięku. Często zawierają błędy harmoniczne. Jednak nie jest konieczne dalsze przetwarzanie sygnału. Ponieważ zakres $F_0$ mieści się w zakresie 80 do 500 Hz. Składowe częstotliwości powyżej 500 Hz są bezużyteczne dla wykrywania tonu.
+ Na rys. \ref{amdf1} został przedstawiony wykres śledzenia częstotliwości przez algorytm AMDF.  Dla porównania na rys. \ref{amdf2} został umieszczony wykres śledzenia częstotliwości z użyciem metody autokorelacji.
+ 
+   \begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.7\linewidth]{rys/amdf1}
+  \caption{Sygnał zarejestrowanej mowy \cite{AMDF}.}
+  \label{amdf1}
+\end{figure}
+
+   \begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.7\linewidth]{rys/amdf2}
+  \caption{Sygnał mowy po użyciu funkcji różnicowej \cite{AMDF}.}
+  \label{amdf2}
+\end{figure}
+
+ \section{{Autokorelacja}}
+Metoda autokorelacji wykorzystana w algorytmach YIN oraz MPM można obliczyć ze wzoru:
+\begin{equation}
+\label{equation:2}
+   Rxx(n) = \sum_{m=0}^{M-1}{x(m)x(m+n)}
+\end{equation}
+Gdzie $Rxx$ jest dyskretną autokorelacją o opóźnieniu $l$, a $x(m)$ jest sygnałem dyskretnym. Metoda na wejściu przyjmuje sygnał okresowy. Po jej wykonaniu uzyskuje się wykres przedstawiający piki przy wielokrotności czasu. Metoda
+  wyznaczania wysokości dźwięku określa jego wysokość na podstawie pozycji
+  ($T_0$) dominującego pierwszego piku funkcji autokorelacji ($R_{xx}$).
+  A jego częstotliwość określa zależność: $f_0=\frac{1}{T_0}$. Może pokazywać błędy, jeżeli dolne ograniczenie jest zbyt blisko zera, wtedy algorytm może błędnie wybrać szczyt. Również w przypadku ustawienia zbyt dużego ograniczenia algorytm może wybrać szczyt z kolejnego rzędu.
+
+ \begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.7\linewidth]{rys/autocorelation}
+  \caption{Przykładowy sygnał po użyciu metody autokorelacji}
+  \label{autocorelation}
+\end{figure}
+Na rysunku 2.4 przedstawiony został wykres zawierający wartości poszczególnych próbek po użyciu wzoru na autokorelacje.
 
 
 \section{{Przegląd istniejących aplikacji}}
-Pierwszym z najbardziej popularnych programów nawiązujących do tematyki pracy jest program o nazwie „Jam Origin”. 
+Pierwszym z najbardziej popularnych programów nawiązujących do tematyki pracy jest program o nazwie „Jam Origin” przedstawiony na rysunku \ref{jamOr}. 
 
 
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.5\linewidth]{rys/jamOrigin1}
-  \caption{Zrzut ekranu z aplikacji Jam Origin.}
-  \label{fig:schemat}
+  \caption{Zrzut ekranu z aplikacji Jam Origin. Źródło: www.jamorigin.com}
+  \label{jamOr}
 \end{figure}
 
 
 Głównymi zaletami aplikacji są rozbudowane funkcje konfiguracji, jako że budowa instrumentów znacząco różni się ze względu na podział np.: smyczkowe, dęte. W większości przypadków można skonfigurować aplikacje pod daną kategorię, poczynając od instrumentów wydobywających pojedynczy dźwięk, aż po instrumenty wytwarzające kilka dźwięków jednocześnie. Najbardziej trafnym przykładem odnoszącym się do instrumentów wytwarzających kilka dźwięków jest gitara elektryczna. Aplikacja „Jam Origin” pozwala na jawne rozdzielenie kilku zagranych dźwięków lub wybieranie trybu mapowania tylko pojedynczego dźwięku. Ma to szczególne znaczenie przy dokładności i wierności odtwarzania wysokości tonów. Program ma też takie funkcje jak czułość przechwytywania dźwięku, co powoduje rzadsze pojawianie się błędów i daje możliwość dopasowania aktualnego poziomu wzmocnienia na wejściu do czułości przechwytywania.
 
 
-Kolejnym wartym uwagi programem, zaliczającym się do aplikacji konwertującej dźwięk na  MIDI  jest „ Migic”. Zasada działania aplikacji jest podobna do poprzedniego przykładu, lecz główną różnicą pomiędzy tymi programami jest zbiór funkcji udostępniony użytkownikowi. Mianowicie „Migic” posiada wszystkie funkcje poprzednika oraz dodatkowo udostępnia pokaźną liczbę informacji.
+Kolejnym wartym uwagi programem, zaliczającym się do aplikacji konwertującej dźwięk na  MIDI  jest przedstawiony na rysunku \ref{migic} „ Migic”. Zasada działania aplikacji jest podobna do poprzedniego przykładu, lecz główną różnicą pomiędzy tymi programami jest zbiór funkcji udostępniony użytkownikowi. Mianowicie „Migic” posiada wszystkie funkcje poprzednika oraz dodatkowo udostępnia pokaźną liczbę informacji.
 
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.5\linewidth]{rys/MIGIC1}
-  \caption{Zrzut ekranu z aplikacji MiGiC.}
-  \label{fig:schemat}
+  \caption{Zrzut ekranu z aplikacji MiGiC. Źródło: migic.com}
+  \label{migic}
 \end{figure}
 
-Do najważniejszych z nich zaliczą się: informacja o opóźnieniu pomiędzy zagranym dźwiękiem, a jego odpowiednikiem w interfajsie MIDI.
+Do najważniejszych z nich zaliczą się: informacja o opóźnieniu pomiędzy zagranym dźwiękiem, a jego odpowiednikiem w interfejsie MIDI.
 Również przydatną informacją jest wyświetlanie tonacji aktualnie granych dźwięków w formie graficznej. Ponadto program udostępnia różnego rodzaju efekty takie jak, pogłosy, echo, zmianę tonacji dźwięku w czasie rzeczywistym.
 Przedstawione programy są jednymi z najbardziej popularnych programów komputerowych nawiązujących tematyką do tej pracy. Istotnym faktem jest to, iż na rynku istnieje jeszcze kilka rozwiązań konwersji dźwięku na MIDI. Jednakże są to rozwiązania rozbieżne z tematem pracy, ponieważ są w dużej mierze realizowane na poziomie sprzętowym z dedykowanymi programami na systemy wbudowane.
 
 
 \section{{Standard MIDI}}
 
-\cite{MIDI} Standard MIDI jest to format u standaryzowany w 1983 roku. Format plików nie zawierają bezpośrednio zapisu dźwięku. Zawierają szereg informacji, za pomocą których możemy uzyskać dźwięk na urządzeniu obsługującym ten format. Odgrywane sekwencje w postaci programowej można przyrównać do zapisu nutowego lub do pozytywek na taśmy perforowane. W formie sekwencji zapisywane są polecenia note on oraz note off. Każdemu z tych poleceń przypisane są informacje w postaci atrybutów tj.
+Standard MIDI \cite{MIDI} jest to format u standaryzowany w 1983 roku. Format ten nie zawiera bezpośredniego zapisu dźwięku. Zawiera szereg informacji, za pomocą których możemy uzyskać dźwięk na urządzeniu obsługującym ten format. Odgrywane sekwencje w postaci programowej można przyrównać do zapisu nutowego lub do pozytywek na taśmy perforowane. W formie sekwencji zapisywane są polecenia note on oraz note off. Każdemu z tych poleceń przypisane są informacje w postaci atrybutów tj.
 
 \begin{itemize}
 \item[•]{key velocity zawiera informacje o sile nacisku na konkretny klawisz syntezatora,}
 \item[•]{wysokość tonu,}
 \item[•]{modulacja dźwięku,}
-\item[•]{clock jest to informacja na temat synchronizacji czasowej pomiędzy poszczególnymi dźwiękami,}
+\item[•]{clock jest to informacja na temat synchronizacji czasowej pomiędzy poszczególnymi dźwiękami.}
 \end{itemize}
 
 Za pomocą tych informacji urządzenie jest w stanie odtworzyć sekwencje poleceń.  MIDI jest dość starym standardem, jednak jego specyfikacja nie uległa zmianie, przez co zachowuje pełną kompatybilność ze wszystkimi urządzeniami obsługującymi ten standard. Aktualnie standard MIDI jest wykorzystywany do sterowania różnego rodzaju syntezatorami i samplerami, w tym także wirtualnymi. W przypadku tej pracy inżynierskiej wykorzystywany będzie syntezator wirtualny. 
@@ -113,13 +158,13 @@ SMF (ang. Standard MIDI Files) - Standard jednolitego zapisu informacji dla sekw
 Zostały utworzone trzy wersje formatu SMF, oznaczone kolejno 0, 1, 2 . W chwili pisania pracy standard jest nadal w użytku i służy do wymiany informacji pomiędzy urządzeniami i  aplikacjami obsługującymi format MIDI. W użytku pozostaje wersja 0 oraz 2. Głównymi różnicami pomiędzy tymi dwoma wydaniami standardu SMF jest sposób zapisu. Dla formatu oznaczonego numerem 0 zapis odbywa się na jednej ścieżce. Jest to dopuszczalny sposób ze względu na to, iż każde zdarzenie MIDI ma w sobie zawartą informację o numerze kanału. Po załadowaniu pliku zapisanego w formacie SMF w wersji 0, urządzenie odbiorcze może bez problemu rozdzielić pojedynczą ścieżkę na wiele ścieżek. Jest to pewna niedogodność, która nie występuje w przypadku wersji 1. W tym wariancie plik zawiera informacje MIDI w formacie wielościeżkowym. Zaletą tego jest niewątpliwie to, że załadowany plik jest bezpośrednio gotowy do użycia lub edycji.
 
 
-Przykładowa wizualizacja zapisu formatu MIDI w programie FL Studio.
+Na rysunku \ref{midiWizual} przykładowa wizualizacja zapisu formatu MIDI w programie FL Studio.
 
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.5\linewidth]{rys/fl1}
-  \caption{Zrzut ekranu z aplikacji FL Studio.}
-  \label{fig:schemat}
+  \caption{Zrzut ekranu z aplikacji FL Studio. Źródło: www.image-line.com/flstudio}
+  \label{midiWizual}
 \end{figure}
 
 
@@ -127,16 +172,16 @@ Synchronizacja MIDI jest potrzebna, aby przeprowadzić poprawną komunikację po
 
 
 \begin{itemize}
-\item[•]{"Start", komunikat ten zawiera informacje do urządzenia odbiorczego o rozpoczęciu odtwarzania.}
-\item[•]{"Stop", komunikat ten zawiera informacje do urządzenia odbiorczego o zatrzymaniu odtwarzania.}
-\item[•]{"Continue", komunikat ten zawiera informacje do urządzenia odbiorczego o odtwarzania od wskazanego miejsca.}
-\item[•]{"Song Position Pointer", jest to komunikat nakazujący urządzeniu podrzędnemu zmianę w odtwarzaniu do określonego miejsca w utworze.}
+\item[•]{Start, komunikat ten zawiera informacje dla urządzenia odbiorczego o rozpoczęciu odtwarzania.}
+\item[•]{Stop, komunikat ten zawiera informacje dla urządzenia odbiorczego o zatrzymaniu odtwarzania.}
+\item[•]{Continue, komunikat ten zawiera informacje dla urządzenia odbiorczego o odtwarzania od wskazanego miejsca.}
+\item[•]{Song Position Pointer, jest to komunikat nakazujący urządzeniu podrzędnemu zmianę w odtwarzaniu do określonego miejsca w utworze.}
 \end{itemize}
 
 Opis procesu synchronizacji wygląda następująco. Urządzenie wysyłające przekazuje informacje do urządzenia odbiorczego, w której zawarty jest komunikat zegarowy pracujący z częstotliwością 24 impulsy na ćwierć nutę. Oczywiście wynika z tego faktu zależności całego procesu od nadanego w utworze tempa. W przypadku gdy główny sekwencer zmieni tempo, zaczyna wysyłać większą liczbę impulsów na sekundę. Powoduje to zmianę tempa w urządzeniu odbiorczym.
 
 
-Istnieje także inna metoda synchronizacji (ang. MIDI Time Code). Swoje główne zastosowanie znalazła dla obsługi przypadków, w których występuje potrzeba synchronizacji dźwięku oraz obrazu.  W tym typie synchronizacji należy odnieść się do czasu rzeczywistego wyrażonego w jednostkach: godzinach, minutach, sekundach. Jest to typ synchronizacji SMPTE, który nagrywany jest na osobnych ścieżkach rejestratora. Wykorzystuje generator kodu czasowego. Dzięki zastosowaniu oznaczeń czasowych, urządzenie odbiorcze jest w stanie zsynchronizować się w każdym momencie trwania utworu. Aby w moc wykorzystać oznaczenia czasowe, należy wyposażyć urządzenia w konwertery (sprzętowe lub programowe), które potrafią przetwarzać kod SMPTE na MIDI Time Code (MTC). Jest to kod spełniający funkcję analogiczną do powyższego, z tą różnicą, że nie pracuje w oparciu o sygnał audio. Kod MTC wykorzystuje specjalne komunikaty MIDI. Urządzenie odbiorcze po otrzymaniu komunikatu na, którym swoją pracę opiera MTC, ma za zadanie zamiana tych informacji na takty, bity oraz impulsy zegara są adekwatne do odpowiadających im jednostek czasu rzeczywistego. Powyższe rozwiązania nie są jednak na tyle dokładne, aby były wykorzystywane osobno do profesjonalnych zastosowań. Do takich zastosowań wykorzystywany jest Word Clock. Jest to sygnał zegarowy, który jest w pełni kompatybilny z pojedynczym impulsem próbkującym. 
+Istnieje także inna metoda synchronizacji (ang. MIDI Time Code). Swoje główne zastosowanie znalazła dla obsługi przypadków, w których występuje potrzeba synchronizacji dźwięku oraz obrazu.  W tym typie synchronizacji należy odnieść się do czasu rzeczywistego wyrażonego w jednostkach: godzinach, minutach, sekundach. Jest to typ synchronizacji SMPTE, który nagrywany jest na osobnych ścieżkach rejestratora. Wykorzystuje generator kodu czasowego. Dzięki zastosowaniu oznaczeń czasowych urządzenie odbiorcze jest w stanie zsynchronizować się w każdym momencie trwania utworu. Aby było można w pełni wykorzystać oznaczenia czasowe, należy wyposażyć urządzenia w konwertery (sprzętowe lub programowe), które potrafią przetwarzać kod SMPTE na MIDI Time Code (MTC). Jest to kod spełniający funkcję analogiczną do powyższego, z tą różnicą, że nie pracuje w oparciu o sygnał audio. Kod MTC wykorzystuje specjalne komunikaty MIDI. Urządzenie odbiorcze po otrzymaniu komunikatu, na którym swoją pracę opiera MTC, ma za zadanie zamianę tych informacji na takty, bity oraz impulsy zegara są adekwatne do odpowiadających im jednostek czasu rzeczywistego. Powyższe rozwiązania nie są jednak na tyle dokładne, aby były wykorzystywane osobno do profesjonalnych zastosowań. Do takich zastosowań wykorzystywany jest Word Clock. Jest to sygnał zegarowy, który jest w pełni kompatybilny z pojedynczym impulsem próbkującym. 
 
 
 
@@ -151,13 +196,13 @@ Aktualnie istnieje wiele rozbudowanych zintegrowanych środowisk programistyczny
 \end{itemize}
 
 
-\cite{Xcode} jest zintegrowanym środowiskiem programistycznym stworzonym przez firmę Apple Inc. Wykorzystywana jest do tworzenia oprogramowania różnego rodzaju na systemy operacyjne OS X. Posiada rozbudowane funkcje: edycji plików, nawigacji po projekcie oraz  debugowania wszystkich typów projektów programistycznych OS X, włączając w to aplikacje, narzędzia, schematy, biblioteki, pakiety pluginowe, rozszerzenia jądra i sterowniki urządzeń. Xcode współpracuje także z systemem kontroli wersji Git poprzez zintegrowane funkcjonalności i specjalne przeznaczone do tego interfejsy dostępne dla programisty. Wszystkie potrzebne komendy zostały opatrzone w przyjazny dla użytkownika interfejs graficzny, co znacznie upraszcza zarządzanie projektem.
+Xcode \cite{Xcode} jest zintegrowanym środowiskiem programistycznym stworzonym przez firmę Apple Inc. Wykorzystywany jest do tworzenia oprogramowania różnego rodzaju na systemy operacyjne OS X. Posiada rozbudowane funkcje: edycji plików, nawigacji po projekcie oraz  debugowania wszystkich typów projektów programistycznych OS X, włączając w to aplikacje, narzędzia, schematy, biblioteki, pakiety pluginowe, rozszerzenia jądra i sterowniki urządzeń. Xcode współpracuje także z systemem kontroli wersji Git poprzez zintegrowane funkcjonalności i specjalnie przeznaczone do tego interfejsy dostępne dla programisty. Wszystkie potrzebne komendy zostały zaopatrzone w łatwy w obsłudze interfejs graficzny, co znacznie upraszcza zarządzanie projektem.
 
 
-\cite{netbeans}Kolejne IDE, które cieszy się dużą popularnością to NetBeans. Jest to środowisko udostępnione bezpłatnie na większość dostępnych systemów operacyjnych. Środowisko to posiada szereg zalet i można uznać je za jedno z najlepszych środowisk programistycznych. Jest oficjalnym środowiskiem programistycznym dla Javy w wersji 8. NetBeans jako darmowe IDE jest przygotowane w kilku wersjach, przeznaczonych do różnych języków programowania. Edytor wspiera wiele składni języków takich jak:  Java, C/C++, XML, HTML, PHP, GROOVY, Javadoc i JavaScript. Edytor tego środowiska jest bardzo elastyczny i pozwala na rozszerzenie wsparcia dla większej liczby języków. Posiada również mechanizm uzupełniania składni oraz całych konstrukcji takich jak: wyrażenie warunkowe, pętle, instrukcje warunkowe. W przypadku pracy z dużym projektem  twórcy IDE udostępnili efektywne i proste w obsłudze narzędzia do zarządzania.
+Kolejne IDE, które cieszy się dużą popularnością to NetBeans \cite{netbeans}. Jest to środowisko udostępnione bezpłatnie na większość dostępnych systemów operacyjnych. Środowisko to posiada szereg zalet i można uznać je za jedno z najlepszych środowisk programistycznych. Jest oficjalnym środowiskiem programistycznym dla Javy w wersji 8. NetBeans jako darmowe IDE jest przygotowane w kilku wersjach, przeznaczonych do różnych języków programowania. Edytor wspiera wiele składni języków takich jak:  Java, C/C++, XML, HTML, PHP, GROOVY, Javadoc i JavaScript. Edytor tego środowiska jest bardzo elastyczny i pozwala na rozszerzenie wsparcia dla większej liczby języków. Posiada również mechanizm uzupełniania składni oraz całych konstrukcji takich jak: wyrażenie warunkowe, pętle, instrukcje warunkowe. W przypadku pracy z dużym projektem  twórcy IDE udostępnili efektywne i proste w obsłudze narzędzia do zarządzania.
 
 
-\cite{eclipse}Wybrane środowisko do tworzenia aplikacji to Eclipse. Jest to platforma programistyczna istniejąca od 2004 r. oparta na języku Java. Głównym powodem wyboru tego IDE, jest prostota użytkowania. Kolejnym argumentem, który przemawia za wyborem tego środowiska jest między innymi fakt, iż jest to najbardziej rozbudowane środowisko. Przygotowany jest do pracy z kilkoma językami programowania w zależności od wersji. Jest aktualnie najczęściej wybieraną platformą do tworzenia aplikacji w języku Java. Całość środowiska jest uzupełniona poprzez dołączane plug-iny.  Ten sposób tworzenia środowiska umożliwia odpowiednie dopasowanie go do potrzeb użytkownika. Użytkownik ma również dostęp do bazy pluginów.
+Wybrane środowisko do tworzenia aplikacji to Eclipse \cite{eclipse}. Jest to platforma programistyczna istniejąca od 2004 r. oparta na języku Java. Głównym powodem wyboru tego IDE, jest prostota użytkowania. Kolejnym argumentem, który przemawia za wyborem tego środowiska, jest między innymi fakt, iż jest to najbardziej rozbudowane środowisko. Środowisko to jest przygotowane do pracy z kilkoma językami programowania w zależności od wersji. Jest aktualnie najczęściej wybieraną platformą do tworzenia aplikacji w języku Java. Całość środowiska jest uzupełniona poprzez dołączane plug-iny.  Ten sposób tworzenia środowiska umożliwia odpowiednie dopasowanie go do potrzeb użytkownika. Użytkownik ma również dostęp do bazy pluginów.
 
 
 \begin{itemize}
@@ -167,35 +212,35 @@ Aktualnie istnieje wiele rozbudowanych zintegrowanych środowisk programistyczny
 \end{itemize}
 
 
-Poniżej został przedstawiony zrzut ekranu wybranego środowiska programistycznego Eclipse.
+Na rysunku \ref{eclipse} został przedstawiony zrzut ekranu wybranego środowiska programistycznego Eclipse.
 
 
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.5\linewidth]{rys/eclipse1}
   \caption{Środowisko programistyczne Eclipse.}
-  \label{fig:schemat}
+  \label{eclipse}
 \end{figure}
 
 \section{{Języki programowania i biblioteki}}
 
 Do zrealizowania aplikacji użyty zostanie język Java. Jest to jeden z najbardziej popularnych języków. 
-\cite{horstmann}Java jest językiem, który z założenia miał być prosty, oznacza to, że struktura języka nie jest skomplikowana. Dopatrując się podobieństw, można zauważyć, iż składnia języka jest zbliżona ze składnią C++.  Język ten jest w pełni obiektowy, co w dużej mierze ułatwia projektowanie bardziej złożonych systemów. Twórcy języka postawili również na niezawodność, jednym z argumentów za tym przemawiających jest fakt, iż model wskaźnikowy w tym języku jest zaprojektowany w przemyślany sposób. Nie ma tutaj możliwości nadpisania pamięci i zniszczenia danych, które się w niej znajdują. Mechanizmy abstrakcji zastosowane w tym języku pozwalają na znacznie lepszą i efektywniejszą organizację samego kodu źródłowego, jak również podział logiczny. 
+Java \cite{horstmann} jest językiem, który z założenia miał być prosty, oznacza to, że struktura języka nie jest skomplikowana. Dopatrując się podobieństw, można zauważyć, iż składnia języka jest zbliżona ze składnią C++.  Język ten jest w pełni obiektowy, co w dużej mierze ułatwia projektowanie bardziej złożonych systemów. Twórcy języka postawili również na niezawodność, jednym z argumentów za tym przemawiających jest fakt, iż model wskaźnikowy w tym języku jest zaprojektowany w przemyślany sposób. Nie ma tutaj możliwości nadpisania pamięci i zniszczenia danych, które się w niej znajdują. Mechanizmy abstrakcji zastosowane w tym języku pozwalają na znacznie lepszą i efektywniejszą organizację samego kodu źródłowego, jak również podział logiczny. 
 
 
-\cite{horstmann}Java ten ma znaczną przewagę na innymi językami programowania,  ze względu na zastosowanie obiektowości oraz ze względu na wiele nowych przydatnych funkcji dodanych w kolejnych odsłonach języka. Z każdą wersją dodawane są nowe funkcjonalności, które w znacznym stopniu ułatwiają pracę programisty. Przestarzałe funkcjonalności są oznaczane jako przestarzałe. Na ich miejsce pojawiają się nowe, co świadczy o tym, iż język ten jest ciągle rozwijany. 
+Język ten ma znaczną przewagę na innymi językami programowania,  ze względu na zastosowanie obiektowości oraz ze względu na wiele nowych przydatnych funkcji dodanych w kolejnych odsłonach języka. Z każdą wersją dodawane są nowe funkcjonalności, które w znacznym stopniu ułatwiają pracę programisty. Przestarzałe funkcjonalności są oznaczane jako przestarzałe. Na ich miejsce pojawiają się nowe, co świadczy o tym, iż język ten jest ciągle rozwijany \cite{horstmann}. 
 
 
-Java dysponuje też pokaźną liczbą gotowych, przygotowanych dla programistów bibliotek. Biblioteki te w większości przypadków wręcz wyręczają programistów. Gotowe rozwiązania znacznie usprawniają i przyspieszają pracę. Umożliwia to zaoszczędzenie dużej ilości czasu poprzez udostępnianie chociażby gotowych rozwiązań z zakresu struktur danych.
+Java dysponuje też pokaźną liczbą gotowych bibliotek. Biblioteki te w większości przypadków wyręczają programistów. Gotowe rozwiązania znacznie usprawniają i przyspieszają pracę. Umożliwia to zaoszczędzenie dużej ilości czasu poprzez udostępnianie, chociażby gotowych rozwiązań z zakresu struktur danych.
 
 
 Główną zaletą popularności języka jest to, iż istnieje dostęp do dużej liczby kodów źródłowych zawierających gotowe rozwiązania lub opis wraz z rozwiązaniami wielu ważnych problemów pojawiających się stale, przy projektowaniu różnorodnych aplikacji.
 
 
-\cite{horstmann2}Ważnym aspektem w języka Java jest fakt że programy napisane w tym języku  po kompilacji do plików w formacie obiektowym są uruchamiane na maszynie wirtualnej. Możemy zatem uruchamiać aplikacje na wszystkich urządzeniach które obsługują i mają zainstalowaną Jave. Dzieje się tak dlatego, iż kompilator tworzy kod bajtowy niezależny od żadnego procesora. Kod tak wygenerowany jest tworzony w ten sposób aby jak najszybciej można było go przetłumaczyć na kod maszynowy procesora.
+Ważnym aspektem w języku Java \cite{horstmann2} jest fakt, że programy napisane w tym języku  po kompilacji do plików w formacie obiektowym są uruchamiane na maszynie wirtualnej. Możemy zatem uruchamiać aplikacje na wszystkich urządzeniach, które obsługują i mają zainstalowaną Javę. Dzieje się tak dlatego, iż kompilator tworzy kod bajtowy niezależny od żadnego procesora. Kod tak wygenerowany jest tworzony w ten sposób, aby jak najszybciej można było go przetłumaczyć na kod maszynowy procesora.
 
 
-Istotną kwestią przy utrzymywaniu dobrego stylu programowania jest utrzymywanie przejrzystej dokumentacji. Zarządzanie dokumentacją odbywa się przy pomocy narzędzia JavaDoc. Za pomocą znaczników, które umieszczane są w kodzie źródłowym Java jest w stanie wygenerować przejrzystą dokumentację w języku HTML. Używanie znaczników nieznacznie różni się od umieszczania komentarzy. Zostało to rozróżnione, ponieważ nie wszystkie komentarze powinny znajdować się w ogólnej dokumentacji. Blok zdefiniowany na potrzeby Javadoc jest ignorowany przez kompilator. Umieszczenie bloku przed deklaracją klasy lub metody stanowi jej opis. Do dyspozycji zostały oddane również znaczniki umożliwiające opis parametrów poszczególnych metod. 
+Istotną kwestią przy utrzymywaniu dobrego stylu programowania jest utrzymywanie przejrzystej dokumentacji. Zarządzanie dokumentacją odbywa się przy pomocy narzędzia JavaDoc. Za pomocą znaczników, które umieszczane są w kodzie źródłowym, Java jest w stanie wygenerować przejrzystą dokumentację w języku HTML. Używanie znaczników nieznacznie różni się od umieszczania komentarzy. Zostało to rozróżnione, ponieważ nie wszystkie komentarze powinny znajdować się w ogólnej dokumentacji. Blok zdefiniowany na potrzeby Javadoc jest ignorowany przez kompilator. Umieszczenie bloku przed deklaracją klasy lub metody stanowi jej opis. Do dyspozycji zostały oddane również znaczniki umożliwiające opis parametrów poszczególnych metod. 
 
 
 Zdecydowanie się na konkretny język programowania niesie za sobą decyzje o konkretnych bibliotekach, z którymi praca jest znacznie szybsza, ponieważ zawierają one gotowe rozwiązania. Użyte w projekcje biblioteki to:

@@ -44,6 +44,7 @@ import be.tarsos.dsp.pitch.PitchProcessor.PitchEstimationAlgorithm;
 import jm.JMC;
 import jm.music.data.Note;
 import jm.util.Play;
+import jm.util.Read;
 
 public class PitchDetector {
 	private String algoritm;
@@ -60,7 +61,9 @@ public class PitchDetector {
 	public int bufferOverlap = audioBufferSize / 2;
 	public MIDIHandler midi;
 	public static String PITCH_DETECTOR = "Pitch Detector";
-	boolean let= false;
+	boolean let = false;
+	public String FIRST_MY_IMPLEMENT = "Autocorelation";
+	public String SECOND_MY_IMPLEMENT = "AMDF_my_impl";
 
 	public PitchDetector() {
 		this.algoritm = "YIN";
@@ -109,6 +112,8 @@ public class PitchDetector {
 		for (PitchEstimationAlgorithm pitchEstimationAlgorithm : PitchEstimationAlgorithm.values()) {
 			algoArray.add(pitchEstimationAlgorithm.toString());
 		}
+		algoArray.add(FIRST_MY_IMPLEMENT);
+		algoArray.add(SECOND_MY_IMPLEMENT);
 		JComboBox<String> algoritms = new JComboBox<>(algoArray.toArray(new String[algoArray.size()]));
 		WaveChart chart = new WaveChart();
 		detectPitch.addActionListener(new ActionListener() {
@@ -228,20 +233,19 @@ public class PitchDetector {
 
 	public void realTimeChart() {
 		// TODO real time chart
-		RealTimeChart realtimeChart = new RealTimeChart("Real time chart");
 	}
 
 	protected void transmisionInput() {
 		AudioFormat format = getAudioFormat();
 		TargetDataLine line = null;
 		AudioInputStream audioInputStream = null;
-		DataLine.Info info = new DataLine.Info(TargetDataLine.class, format); // format is an AudioFormat object
+		DataLine.Info info = new DataLine.Info(TargetDataLine.class, format); // format is an
+		// AudioFormat object
 		if (!AudioSystem.isLineSupported(info)) {
 			// Handle the error ...
 		}
 		// Obtain and open the line.
 		try {
-			// line = (TargetDataLine) AudioSystem.getLine(info);
 			line = AudioSystem.getTargetDataLine(format);
 			line.open(format);
 		} catch (LineUnavailableException ex) {
@@ -252,7 +256,6 @@ public class PitchDetector {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		int numBytesRead;
 		data = new byte[line.getBufferSize() / 5];
-
 		// Begin audio capture.
 		line.start();
 
@@ -282,7 +285,79 @@ public class PitchDetector {
 	}
 
 	private void detectPitchYin(File file, JPanel chartPanel, WaveChart chart) {
-		detectPitch(file);
+		if (getAlgoritm().equals(FIRST_MY_IMPLEMENT)) {
+			detectPitchMyFirstImpl();
+		} else if (getAlgoritm().equals(SECOND_MY_IMPLEMENT)) {
+			detectPitchMySecondImpl();
+		} else
+			detectPitch(file);
+	}
+
+	private void detectPitchMySecondImpl() {
+		// AMDF
+		int bufforLenght = 512;
+		double sampleRate = 44100;
+		float[] data = Read.audio(file.getAbsolutePath());
+		float[] outR = new float[bufforLenght];
+		int maxT = 0;
+		float max = 0;
+		for (int i = 0; i < data.length; i += bufforLenght) {
+			// wzór Rxx(k) = E x(n) * x(n+k)
+			for (int k = 20; k < bufforLenght; k++) {
+				for (int n = 0; n < bufforLenght; n++) {
+					if (n + k >= bufforLenght)
+						break;
+					if (n + k + i >= data.length)
+						break;
+					outR[k] += data[i + n] * data[i + n + k];
+				}
+				if (outR[k] > max) {
+					max = outR[k];
+					maxT = k;
+				}
+			}
+			outR = new float[bufforLenght];
+			double time = i / sampleRate;
+			double f = 1 / (maxT / sampleRate);
+			String message = String.format("częstotliwość: %4.2f ; czas: %5.4f \n", f, time);
+			resultMessage += message;
+			result.setText(resultMessage);
+			max = 0;
+			maxT = 0;
+		}
+	}
+
+	private void detectPitchMyFirstImpl() {
+		// Autokorelacja
+		int bufforLenght = 512;
+		double sampleRate = 44100;
+		float[] data = Read.audio(file.getAbsolutePath());
+		float[] outR = new float[bufforLenght];
+		int maxT = 0;
+		float max = 0;
+		for (int i = 0; i < data.length; i += bufforLenght) {
+			for (int k = 20; k < bufforLenght; k++) {
+				for (int n = 0; n < bufforLenght; n++) {
+					if (n + k >= bufforLenght)
+						break;
+					if (n + k + i >= data.length)
+						break;
+					outR[k] += data[i + n] * data[i + n + k];
+				}
+				if (outR[k] > max) {
+					max = outR[k];
+					maxT = k;
+				}
+			}
+			outR = new float[bufforLenght];
+			double time = i / sampleRate;
+			double f = 1 / (maxT / sampleRate);
+			String message = String.format("częstotliwość: %4.2f ; czas: %5.4f \n", f, time);
+			resultMessage += message;
+			result.setText(resultMessage);
+			max = 0;
+			maxT = 0;
+		}
 	}
 
 	protected void detectPitch(File file) {
@@ -353,17 +428,13 @@ public class PitchDetector {
 			if (pitchDetectionResult.getPitch() != -1) {
 				double timeStamp = audioEvent.getTimeStamp();
 				float pitch = pitchDetectionResult.getPitch() / 2;
-				float probability = pitchDetectionResult.getProbability();
-				double rms = audioEvent.getRMS() * 100;
 				System.out.print(pitch + "\n");
-				String message = String.format("Pitch detected at %.2fs: %.2fHz \n",
-						timeStamp, pitch);
+				String message = String.format("Pitch detected at %.2fs: %.2fHz \n", timeStamp, pitch);
 				if (pitch > 100 && let == true) {
 					midi.playMidiFromHz(pitch);
 					let = false;
 					return;
 				}
-				// System.out.println(message + "\n");
 				resultMessage += message;
 				result.setText(resultMessage);
 			}

@@ -9,13 +9,12 @@ import javax.sound.midi.Synthesizer;
 import jm.music.data.Note;
 
 public class MIDIHandler {
-	private int  lastNote;
 	private Instrument[] instr;
 	private MidiChannel[] mChannels;
-	private Synthesizer midiSynth ;
+	private Synthesizer midiSynth;
 
 	public MIDIHandler() throws MidiUnavailableException {
-		 midiSynth = MidiSystem.getSynthesizer();
+		midiSynth = MidiSystem.getSynthesizer();
 		midiSynth.open();
 
 		instr = midiSynth.getDefaultSoundbank().getInstruments();
@@ -31,8 +30,7 @@ public class MIDIHandler {
 
 	void playMIDI(int value) {
 		midiSynth.loadInstrument(instr[0]);// load an instrument
-		mChannels[0].noteOn(value, 100);// On channel 0, play note number 60 with velocity 100
-		//mChannels[0].noteOff(lastNote);// turn of the note
+		mChannels[0].noteOn(value, 100);// On channel 0, play note number (value) with velocity 100
 		try {
 			Thread.sleep(500); // wait time in milliseconds to control duration
 		} catch (InterruptedException e) {
